@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Chakra Training — Hand-jutsu in your browser</title>
+  <meta name="description" content="Real-time augmented-reality hand jutsu. Charge a Rasengan, call down Chidori and cross your hands for Shadow Clones, all through your webcam." />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta property="og:title" content="Chakra Training" />
+  <meta property="og:description" content="Charge a Rasengan, call down Chidori and cross your hands for Shadow Clones, live through your webcam." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Dela+Gothic+One&family=Outfit:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+  <!-- Heads-up display -->
+  <header id="hud">
+    <div class="brand" aria-label="Chakra Training">
+      <span class="brand-kanji" lang="ja" aria-hidden="true">修行</span>
+      <span class="brand-text">Chakra Training</span>
+    </div>
+
+    <ul id="jutsu-bar" aria-label="Jutsu status">
+      <li id="chidori-badge" class="jutsu" data-tone="chidori">
+        <span class="kanji" lang="ja" aria-hidden="true">千鳥</span>
+        <span class="jutsu-name">Chidori</span>
+        <span class="jutsu-hand" id="chidori-hand">Left palm</span>
+      </li>
+      <li id="clone-badge" class="jutsu" data-tone="clone">
+        <span class="kanji" lang="ja" aria-hidden="true">影分身</span>
+        <span class="jutsu-name">Shadow clone</span>
+        <span class="jutsu-hand">Cross both hands</span>
+      </li>
+      <li id="rasengan-badge" class="jutsu" data-tone="rasengan">
+        <span class="kanji" lang="ja" aria-hidden="true">螺旋丸</span>
+        <span class="jutsu-name">Rasengan</span>
+        <span class="jutsu-hand" id="rasengan-hand">Right palm</span>
+        <span class="meter" aria-hidden="true"><i id="charge-fill"></i></span>
+      </li>
+    </ul>
+
+    <div class="tools">
+      <button id="sound" class="icon-button" type="button" aria-pressed="false" aria-label="Sound on" title="Sound (M)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="speaker" d="M4 9v6h4l5 4V5L8 9H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path class="slash" d="M17 9l5 6M22 9l-5 6"/></svg>
+      </button>
+      <button id="fullscreen" class="icon-button" type="button" aria-label="Fullscreen" title="Fullscreen (F)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+      <button id="settings-toggle" class="icon-button" type="button" aria-expanded="false" aria-controls="settings-panel" aria-label="Settings" title="Settings (S)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Seal progress: fills while the clone seal is held -->
+  <div id="seal-ring" aria-hidden="true">
+    <svg viewBox="0 0 120 120">
+      <circle class="track" cx="60" cy="60" r="52" />
+      <circle class="fill" id="seal-fill" cx="60" cy="60" r="52" pathLength="100" />
+    </svg>
+    <span lang="ja">印</span>
+  </div>
+
+  <!-- Subtitle -->
+  <div id="controls">
+    <p id="status" role="status" aria-live="polite">Open your right palm to begin.</p>
+    <p id="hint"><kbd>M</kbd> sound <kbd>F</kbd> fullscreen <kbd>S</kbd> settings <kbd>D</kbd> detection</p>
+  </div>
+
+  <!-- Jutsu title card: flash, speed lines, kanji slam -->
+  <div id="callout" aria-hidden="true">
+    <div class="flash"></div>
+    <div class="rays"></div>
+    <div class="slab"><span class="c-kanji" lang="ja"></span><span class="c-name"></span></div>
+  </div>
+  <div id="bars" aria-hidden="true"></div>
+
+  <!-- Settings -->
+  <aside id="settings-panel" aria-label="Settings" hidden>
+    <h2>Settings</h2>
+    <label class="field" for="opacity"><span>Rasengan glow</span>
+      <input id="opacity" type="range" min="0.2" max="0.95" step="0.01" value="0.85" /></label>
+    <label class="field" for="chidori-opacity"><span>Chidori glow</span>
+      <input id="chidori-opacity" type="range" min="0.2" max="1" step="0.01" value="1" /></label>
+    <div class="switches">
+      <button id="swap" class="switch" type="button" role="switch" aria-checked="false"><span>Swap left and right hands</span><i></i></button>
+      <button id="impact-toggle" class="switch" type="button" role="switch" aria-checked="true"><span>Impact shake and flash</span><i></i></button>
+      <button id="debug-toggle" class="switch" type="button" role="switch" aria-checked="false"><span>Show detection</span><i></i></button>
+    </div>
+    <p class="note">Swap if Rasengan and Chidori feel reversed. Detection shows what the tracker sees, which helps when the cross is hard to hit.</p>
+  </aside>
+
+  <!-- Detection view -->
+  <aside id="debug" aria-label="Detection view" hidden></aside>
+
+  <!-- Intro / loading / error screen: a poster. Giant type on red, the figure stands in front of it. -->
+  <main id="intro">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <header class="hero-brand"><span class="hero-mark" lang="ja" aria-hidden="true">修</span>Chakra Training</header>
+    <h1 class="mega"><span class="mega-1">Chakra</span><span class="mega-2">Training</span></h1>
+    <div class="subject" aria-hidden="true"><div class="float"><img src="./src/assets/hokage.webp" alt="" width="1768" height="1336" decoding="async" /></div></div>
+    <div class="burst" aria-hidden="true"></div>
+    <div class="flare" aria-hidden="true"></div>
+
+    <div class="notes">
+      <aside class="note note-chidori"><b>Chidori</b><span class="jp" lang="ja" aria-hidden="true">千鳥</span><p>Open your left palm. Close it to stop.</p></aside>
+      <aside class="note note-clone"><b>Shadow clone</b><span class="jp" lang="ja" aria-hidden="true">影分身</span><p>Cross your hands with two fingers out on each. Hold. Do it again to dispel.</p></aside>
+      <aside class="note note-rasengan"><b>Rasengan</b><span class="jp" lang="ja" aria-hidden="true">螺旋丸</span><p>Open your right palm for 1.5 seconds. Point two fingers at the camera to fire.</p></aside>
+    </div>
+    <p class="tagline" aria-hidden="true">Hand tracking<br />In your browser<br />No controller</p>
+    <p class="vert" lang="ja" aria-hidden="true">印を結べ</p>
+
+    <div class="actions">
+      <p class="lede" id="intro-message">Make the signs. Your hands are the controller.</p>
+      <button id="start" type="button" class="cta"><span id="start-label">Start training</span></button>
+      <div id="progress" aria-hidden="true" hidden><i id="progress-fill"></i></div>
+    </div>
+    <p class="privacy">The camera feed stays on your device. Go online the first time so the hand-tracking model can load.</p>
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

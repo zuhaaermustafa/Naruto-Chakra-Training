@@ -1,0 +1,31 @@
+{
+  "name": "chakra-training",
+  "version": "1.0.0",
+  "description": "Real-time augmented-reality hand jutsu in the browser: Rasengan, Chidori and Shadow Clones from your webcam.",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "mediapipe",
+    "three.js",
+    "webcam",
+    "hand-tracking",
+    "augmented-reality",
+    "vite"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "predev": "node scripts/copy-mediapipe.mjs",
+    "prebuild": "node scripts/copy-mediapipe.mjs",
+    "test": "node tests/sequence.test.mjs && node tests/cloneSeal.test.mjs && node tests/cloneSealPipeline.test.mjs && node tests/impactFx.test.mjs",
+    "check": "npm test && vite build"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
+    "three": "^0.186.1"
+  }
+}
